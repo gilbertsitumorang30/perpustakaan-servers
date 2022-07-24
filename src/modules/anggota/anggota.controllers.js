@@ -7,6 +7,7 @@ const { QueryTypes } = require("sequelize");
 const db = require("../../config/database.connection");
 const moment = require("moment");
 const Buku = require("../buku/buku.model");
+const { Op } = require("sequelize");
 
 exports.tambahAnggota = async (req, res) => {
   const {
@@ -18,8 +19,20 @@ exports.tambahAnggota = async (req, res) => {
     nomor_telepon,
     alamat,
   } = req.body;
-  console.log(req.body);
   try {
+    const anggota = await Anggota.findOne({
+      where: {
+        nomor_induk_siswa: nomor_induk_siswa,
+      },
+    });
+
+    if (anggota) {
+      return res.status(400).json({
+        status: res.statusCode,
+        msg: "nomor induk siswa sudah terdaftar",
+      });
+    }
+
     let foto =
       "https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png";
     if (req.file) {
@@ -80,7 +93,7 @@ exports.anggotaMasuk = async (req, res) => {
 
     await Anggota.update(
       {
-        terakhir_masuk: moment().add(7, "h").format("YYYY-MM-DD HH:mm:ss"),
+        terakhir_masuk: moment().format("YYYY-MM-DD HH:mm:ss"),
       },
       {
         where: {
@@ -135,6 +148,47 @@ exports.panggilSemuaAnggota = async (req, res) => {
       limit: limit,
       totalRows: totalRows[0].totalRows,
       totalPage: totalPage,
+    });
+  } catch (error) {
+    res.status(404).json({
+      status: res.statusCode,
+      msg: error.message,
+    });
+  }
+};
+
+exports.panggilSemuaAnggotaTotal = async (req, res) => {
+  try {
+    const sql = `select a.id, a.nomor_induk_siswa, a.foto, a.nama, k.kelas, a.jenis_kelamin, a.nomor_telepon, a.alamat from anggota as a
+    join kelas as k on (a.id_kelas = k.id) `;
+    const anggota = await db.query(sql, {
+      type: QueryTypes.SELECT,
+    });
+    res.status(200).json({
+      status: res.statusCode,
+      msg: "Semua anggota Berhasil di panggil",
+      data: anggota,
+    });
+  } catch (error) {
+    res.status(404).json({
+      status: res.statusCode,
+      msg: error.message,
+    });
+  }
+};
+
+exports.panggilAnggotaById = async (req, res) => {
+  try {
+    const sql = `select a.id, a.nomor_induk_siswa, a.password, a.foto,a.nama, k.id as id_kelas, k.kelas, a.jenis_kelamin, a.nomor_telepon, a.alamat from anggota as a
+    join kelas as k on (a.id_kelas = k.id) where a.id = ${req.params.id}; `;
+    const anggota = await db.query(sql, {
+      type: QueryTypes.SELECT,
+    });
+    console.log(anggota);
+    res.status(200).json({
+      status: res.statusCode,
+      msg: "Semua anggota Berhasil di panggil",
+      data: anggota[0],
     });
   } catch (error) {
     res.status(404).json({
@@ -254,6 +308,83 @@ exports.panggilAnggotaTerakhirMasuk = async (req, res) => {
 exports.ajukanPeminjaman = async (req, res) => {
   const { id_anggota, id_buku } = req.body;
   try {
+    const peminjamanMaksimal = await Peminjaman.findAll({
+      where: {
+        [Op.and]: [
+          {
+            id_anggota: id_anggota,
+          },
+
+          {
+            [Op.or]: [
+              {
+                status: "diterima",
+              },
+              { status: "menunggu" },
+            ],
+          },
+        ],
+      },
+    });
+
+    if (peminjamanMaksimal.length >= 3) {
+      let pesan = 0;
+      let pinjam = 0;
+      let message = "";
+      peminjamanMaksimal.forEach((item) => {
+        if (item.status === "menunggu") {
+          pesan = pesan + 1;
+        } else {
+          pinjam = pinjam + 1;
+        }
+      });
+      if (pesan === 3 && pinjam === 0) {
+        message = `batas maksimal tercapai, kamu sudah memesan ${pesan} buku. silahkan tunggu konfirmasi petugas`;
+      } else if (pesan === 0 && pinjam === 3) {
+        message = `batas maksimal tercapai, kamu sedang meminjam ${pinjam} buku. silahkan kembalikan buku terlebih dahlu `;
+      } else {
+        message = `batas maksimal tercapai, kamu sedang meminjam ${pinjam} buku dan memesan ${pesan} buku `;
+      }
+      console.log("pesan:", pesan);
+      console.log("pinjam:", pinjam);
+      return res.status(404).json({
+        status: res.statusCode,
+        msg: message,
+      });
+    }
+
+    const peminjamanSamaBuku = await Peminjaman.findAll({
+      where: {
+        [Op.and]: [
+          {
+            id_anggota: id_anggota,
+          },
+          { id_buku: id_buku },
+          {
+            [Op.or]: [
+              {
+                status: "diterima",
+              },
+              { status: "menunggu" },
+            ],
+          },
+        ],
+      },
+    });
+
+    if (peminjamanSamaBuku.length) {
+      let message;
+      if (peminjamanSamaBuku[0].status === "menunggu") {
+        message = "buku sudah dipesan, silahkan tunggu konfrimasi petugas";
+      } else {
+        message = "buku sedang dipinjam, harap kembalikan buku terlebih dahulu";
+      }
+      return res.status(404).json({
+        status: res.statusCode,
+        msg: message,
+      });
+    }
+
     const buku = await Buku.findAll({
       where: {
         id: id_buku,
@@ -268,9 +399,11 @@ exports.ajukanPeminjaman = async (req, res) => {
     }
 
     await Peminjaman.create({
+      id_petugas: 1,
       id_anggota: id_anggota,
       id_buku: id_buku,
       tanggal_pesan: moment().format("YYYY-MM-DD HH:mm:ss"),
+      status: "menunggu",
     });
     await Buku.update(
       {
@@ -285,6 +418,8 @@ exports.ajukanPeminjaman = async (req, res) => {
     res.status(201).json({
       status: res.statusCode,
       msg: "peminjaman berhasil di ajukan",
+      peminjaman: peminjamanMaksimal,
+      samabuku: peminjamanSamaBuku,
     });
   } catch (error) {
     res.status(404).json({

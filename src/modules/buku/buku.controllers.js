@@ -27,12 +27,7 @@ exports.tambahBuku = async (req, res) => {
   } = req.body;
 
   const foto =
-    req.protocol +
-    "://" +
-    req.get("host") +
-    "/uploads" +
-    "/" +
-    req.file.filename;
+    "https" + "://" + req.get("host") + "/uploads" + "/" + req.file.filename;
 
   try {
     await Buku.create({

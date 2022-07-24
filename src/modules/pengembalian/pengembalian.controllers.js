@@ -26,12 +26,12 @@ exports.panggilSemuaPengembalian = async (req, res) => {
 
 exports.panggilPengembalianById = async (req, res) => {
   try {
-    const sql = `select pgm.id, pgm.tanggal_kembali, pgm.status, pgm.denda, pgm.terlambat, b.judul as judul_buku, a.nama as nama_anggota, p.nama as nama_petugas from pengembalian as pgm 
+    const sql = `select pgm.id, pgm.tanggal_kembali, pgm.status, pgm.denda, pgm.terlambat ,  b.judul as judul_buku , a.nama as nama_anggota, p.nama as nama_petugas from pengembalian as pgm 
+    join petugas as p on (pgm.id_petugas = 1)
     join peminjaman as pjm on (pgm.id_peminjaman = pjm.id)
     join buku as b on (pjm.id_buku = b.id)
     join anggota as a on (pjm.id_anggota = a.id)
-    join petugas as p on (pgm.id_petugas = p.id)
-    where pgm.id = ${req.params.id}`;
+     where pgm.id = ${req.params.id}`;
     const pengembalian = await db.query(sql, {
       type: QueryTypes.SELECT,
     });

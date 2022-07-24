@@ -6,6 +6,7 @@ const routes = express.Router();
 routes.get("/", petugasControllers.panggilSemuaPeminjaman);
 routes.get("/pemesanan", petugasControllers.panggilSemuaPesanan);
 routes.get("/riwayat", petugasControllers.panggilRiwayatPeminjaman);
+routes.put("/batal", petugasControllers.batalkanPeminjaman);
 routes.get("/:id", petugasControllers.panggilPeminjamanById);
 
 module.exports = routes;

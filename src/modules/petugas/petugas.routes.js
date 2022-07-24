@@ -9,13 +9,9 @@ routes.get("/", petugasControllers.panggilSemuaPetugas);
 routes.get("/total", petugasControllers.panggilTotal);
 routes.get("/:id", petugasControllers.panggilPetugasById);
 // routes.put("/:id", petugasControllers.updatePetugasById);
-routes.delete("/:id", userVerification, petugasControllers.hapusPetugasById);
+routes.delete("/:id", petugasControllers.hapusPetugasById);
 routes.post("/masuk", petugasControllers.petugasMasuk);
-routes.post(
-  "/tambah/petugas",
-  userVerification,
-  petugasControllers.tambahPetugas
-);
+routes.post("/tambah/petugas", petugasControllers.tambahPetugas);
 //end petugas
 
 //transaksi
@@ -24,7 +20,6 @@ routes.post("/kembalikan-buku", petugasControllers.pengembalian);
 routes.put("/konfirmasi-peminjaman", petugasControllers.konfirmasiPeminjaman);
 routes.put(
   "/konfirmasi/pengembalian/:id",
-  userVerification,
   petugasControllers.konfirmasiPengembalian
 );
 //end transaksi

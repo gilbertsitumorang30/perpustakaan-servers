@@ -306,7 +306,6 @@ exports.pengembalian = async (req, res) => {
     const peminjaman = await Peminjaman.findAll({
       where: {
         id: id_peminjaman,
-        id_petugas: 1,
       },
     });
     await Peminjaman.update(
@@ -339,6 +338,7 @@ exports.pengembalian = async (req, res) => {
       status: status,
       denda: denda,
       terlambat: terlambat,
+      id_petugas: 1,
     });
 
     res.status(201).json({

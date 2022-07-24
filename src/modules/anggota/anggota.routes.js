@@ -6,6 +6,7 @@ const userVerification = require("../../services/user.auth");
 const routes = express.Router();
 
 routes.get("/", anggotaControllers.panggilSemuaAnggota);
+routes.get("/total", anggotaControllers.panggilSemuaAnggotaTotal);
 routes.get("/terakhir-masuk", anggotaControllers.panggilAnggotaTerakhirMasuk);
 routes.get("/:id", anggotaControllers.panggilAnggotaById);
 
